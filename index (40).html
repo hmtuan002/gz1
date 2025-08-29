@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <title>Tra cứu địa chỉ sau sáp nhập</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; }
+    select { padding: 6px; margin: 5px 0; width: 300px; }
+    #result { margin-top: 20px; padding: 10px; border: 1px solid #ccc; background: #f9f9f9; }
+  </style>
+</head>
+<body>
+  <h2>Tra cứu địa chỉ mới</h2>
+
+  <label>Chọn tỉnh/thành phố:</label><br>
+  <select id="provinceSelect">
+    <option value="">-- Chọn tỉnh/thành phố --</option>
+  </select>
+  <br><br>
+
+  <label>Chọn quận/huyện, phường/xã cũ:</label><br>
+  <select id="oldSelect">
+    <option value="">-- Chọn địa danh cũ --</option>
+  </select>
+  <br><br>
+
+  <div id="result"><i>Địa điểm mới sẽ hiển thị ở đây...</i></div>
+
+<script>
+// Đặt link tới JSON trên GitHub Pages của bạn
+// Ví dụ: https://username.github.io/vietnamprovince.json
+const JSON_URL = "https://hmtuan002.github.io/gz1/vietnamprovince.json";
+
+let provincesData = [];
+
+async function loadData() {
+  try {
+    const res = await fetch(JSON_URL);
+    const json = await res.json();
+    provincesData = json.data;
+
+    // đổ danh sách tỉnh
+    const provinceSelect = document.getElementById("provinceSelect");
+    provincesData.forEach(p => {
+      const opt = document.createElement("option");
+      opt.value = p.id;
+      opt.textContent = p.province;
+      provinceSelect.appendChild(opt);
+    });
+  } catch (err) {
+    console.error("Lỗi tải dữ liệu:", err);
+  }
+}
+
+// khi chọn tỉnh → hiển thị danh sách địa danh cũ
+document.getElementById("provinceSelect").addEventListener("change", function() {
+  const provId = this.value;
+  const oldSelect = document.getElementById("oldSelect");
+  oldSelect.innerHTML = '<option value="">-- Chọn địa danh cũ --</option>';
+  document.getElementById("result").innerHTML = "<i>Địa điểm mới sẽ hiển thị ở đây...</i>";
+
+  if (!provId) return;
+
+  const province = provincesData.find(p => p.id === provId);
+  if (province && province.wards) {
+    province.wards.forEach(w => {
+      (w.mergedFrom || []).forEach(oldName => {
+        const opt = document.createElement("option");
+        // gắn thông tin địa danh mới + tên tỉnh vào value
+        opt.value = JSON.stringify({ newName: w.name, province: province.province, oldName });
+        opt.textContent = oldName;
+        oldSelect.appendChild(opt);
+      });
+    });
+  }
+});
+
+// khi chọn địa danh cũ → hiển thị địa chỉ mới
+document.getElementById("oldSelect").addEventListener("change", function() {
+  if (!this.value) return;
+  const { newName, province, oldName } = JSON.parse(this.value);
+  document.getElementById("result").innerHTML = `
+    <b>Địa danh cũ:</b> ${oldName}<br>
+    <b>Địa danh mới:</b> ${newName}<br>
+    <b>Tỉnh/Thành:</b> ${province}
+  `;
+});
+
+loadData();
+</script>
+</body>
+</html>
